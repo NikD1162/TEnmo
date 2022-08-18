@@ -1,16 +1,23 @@
 package com.techelevator.tenmo;
 
-import com.techelevator.tenmo.model.AuthenticatedUser;
-import com.techelevator.tenmo.model.UserCredentials;
-import com.techelevator.tenmo.services.AuthenticationService;
-import com.techelevator.tenmo.services.ConsoleService;
+import com.techelevator.tenmo.model.*;
+import com.techelevator.tenmo.services.*;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 public class App {
 
     private static final String API_BASE_URL = "http://localhost:8080/";
+    private static final String API_BASE_URL_ACCOUNT = "http://localhost:8080/account/";
+    private static final String API_BASE_URL_USER = "http://localhost:8080/user/";
+    private static final String API_BASE_URL_TRANSFER = "http://localhost:8080/transfer/";
 
     private final ConsoleService consoleService = new ConsoleService();
     private final AuthenticationService authenticationService = new AuthenticationService(API_BASE_URL);
+    private final AccountService accountService = new AccountService(API_BASE_URL_ACCOUNT);
+    private final UserService userService = new UserService(API_BASE_URL_USER);
+    private final TransferService transferService = new TransferService(API_BASE_URL_TRANSFER);
 
     private AuthenticatedUser currentUser;
 
@@ -86,12 +93,19 @@ public class App {
 
 	private void viewCurrentBalance() {
 		// TODO Auto-generated method stub
-		
+        System.out.println("Your current account balance is: $" + accountService.getBalance(currentUser));
 	}
 
 	private void viewTransferHistory() {
 		// TODO Auto-generated method stub
-		
+        long accountId =  accountService.getAccount(currentUser.getUser().getId(), currentUser).getAccountId();
+        System.out.println("111111");
+        List<Transfer> list = transferService.list(accountId, currentUser);
+        System.out.println(list.get(0).getTransferId());
+        System.out.println("111111");
+		for (Transfer transfer : list) {
+            System.out.println(transfer.getTransferId());
+        }
 	}
 
 	private void viewPendingRequests() {
@@ -101,8 +115,46 @@ public class App {
 
 	private void sendBucks() {
 		// TODO Auto-generated method stub
-		
-	}
+		userService.printUsers(currentUser);
+        long userId = consoleService.promptForMenuSelection("Enter ID of user you are sending to (0 to cancel): ");
+        if (userId == 0) {
+            mainMenu();
+            return;
+        }
+        else if (currentUser.getUser().getId() == userId) {
+            System.out.println(System.lineSeparator() + "*** Prohibited transfer, transfer to your own account ***");
+            consoleService.pause();
+            sendBucks();
+            return;
+        }
+        else if (!userService.checkUserExists(userId, currentUser)) {
+            System.out.println(System.lineSeparator() + "*** User does not exist ***");
+            consoleService.pause();
+            sendBucks();
+            return;
+        }
+        BigDecimal amount = consoleService.promptForBigDecimal("Enter amount: ");
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            System.out.println(System.lineSeparator() + "*** Prohibited transfer, amount less or equal to 0 ***");
+            consoleService.pause();
+            sendBucks();
+
+        }
+        else if (accountService.getBalance(currentUser).compareTo(amount)  <= 0) {
+            System.out.println(System.lineSeparator() + "*** Insufficient funds ***");
+            consoleService.pause();
+            sendBucks();
+            return;
+        }
+        long accountFrom = accountService.getAccount(currentUser.getUser().getId(), currentUser).getAccountId();
+        long accountTo = accountService.getAccount(userId, currentUser).getAccountId();
+        transferService.transferSend(currentUser, accountFrom, accountTo, amount);
+        accountService.updateAccountBalance(userId, currentUser, amount, true);
+        accountService.updateAccountBalance(currentUser.getUser().getId(), currentUser, amount, false);
+        System.out.println(System.lineSeparator() + "*** Transfer successfully completed ***");
+        consoleService.pause();
+        mainMenu();
+    }
 
 	private void requestBucks() {
 		// TODO Auto-generated method stub
