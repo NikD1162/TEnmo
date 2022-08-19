@@ -2,6 +2,7 @@ package com.techelevator.tenmo.services;
 
 import com.techelevator.tenmo.model.AuthenticatedUser;
 import com.techelevator.tenmo.model.Transfer;
+import com.techelevator.tenmo.model.User;
 import com.techelevator.util.BasicLogger;
 import org.springframework.http.*;
 import org.springframework.web.client.ResourceAccessException;
@@ -13,6 +14,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 public class TransferService {
 
@@ -53,16 +55,70 @@ public class TransferService {
         setUserToken(currentUser.getToken());
         List<Transfer> list = new ArrayList<>();
         HttpEntity<Void> entity = makeVoidEntity();
-//        try {
+        try {
             ResponseEntity<Transfer[]> responseEntity = restTemplate.exchange(API_BASE_URL + "?account_id=" + accountId, HttpMethod.GET, entity, Transfer[].class);
-            list = Arrays.asList(responseEntity.getBody());
-//        }
-//        catch (RestClientResponseException | ResourceAccessException e) {
-//            BasicLogger.log(e.getMessage());
-//        }
+            list = Arrays.asList(Objects.requireNonNull(responseEntity.getBody()));
+        }
+        catch (RestClientResponseException | ResourceAccessException e) {
+            BasicLogger.log(e.getMessage());
+        }
         return list;
     }
 
+    public void printTransfers(long accountId, AccountService accountService, AuthenticatedUser currentUser) {
+        List<Transfer> list = list(accountId, currentUser);
+        String str = "_";
+        System.out.println(System.lineSeparator() + str.repeat(45));
+        System.out.println("Transfers");
+        System.out.printf("%-15s%-15s%-15s", "ID", "From/To", "Amount");
+        System.out.println(System.lineSeparator() + str.repeat(45));
+        for (Transfer transfer : list) {
+            long transferId = transfer.getTransferId();
+            long accountFrom = transfer.getAccountFrom();
+            long accountTo = transfer.getAccountTo();
+            BigDecimal amount = transfer.getAmount();
+            if (accountFrom != accountId) {
+                System.out.printf("%-15s%-15s%-15s%n", transferId, "From: " +
+                        accountService.findAccountUsernameByAccountId(accountFrom, currentUser).getUsername(), "$ " + amount);
+            }
+            if (accountTo != accountId) {
+                System.out.printf("%-15s%-15s%-15s%n", transferId, "To: " +
+                        accountService.findAccountUsernameByAccountId(accountTo, currentUser).getUsername(), "$ " + amount);
+            }
+        }
+        System.out.println(str.repeat(40) + System.lineSeparator());
+    }
+
+    public Transfer getTransferById(long transferId, long accountId, AuthenticatedUser currentUser) {
+        List<Transfer> list = list(accountId, currentUser);
+        for (Transfer transfer : list) {
+            if (transfer.getTransferId() == transferId) return transfer;
+        }
+        return null;
+    }
+
+    public void printTransfer(Transfer transfer, long accountId, AccountService accountService, AuthenticatedUser currentUser) {
+        String str = "_";
+        System.out.println(System.lineSeparator() + str.repeat(40));
+        System.out.print("Transfer Details");
+        System.out.println(System.lineSeparator() + str.repeat(40));
+        System.out.println("Id: " + transfer.getTransferId());
+        if (transfer.getAccountFrom() == accountId) {
+            System.out.println("From: Me " + currentUser.getUser().getUsername());
+            System.out.println("To: " + accountService.findAccountUsernameByAccountId(transfer.getAccountTo(), currentUser).getUsername());
+
+        }
+        else if (transfer.getAccountTo() == accountId) {
+            System.out.println("From: " + accountService.findAccountUsernameByAccountId(transfer.getAccountFrom(), currentUser).getUsername());
+            System.out.println("To: Me" + currentUser.getUser().getUsername());
+        }
+        if (transfer.getTransferTypeId() == SEND_ID) System.out.println("Type: Send");
+        else if (transfer.getTransferTypeId() == REQUEST_ID) System.out.println("Type: Request");
+        if (transfer.getTransferStatusId() == PENDING_ID) System.out.println("Status: Pending");
+        else if (transfer.getTransferStatusId() == APPROVED_ID) System.out.println("Status: Approved");
+        else if (transfer.getTransferStatusId() == REJECTED_ID) System.out.println("Status: Rejected");
+        System.out.println("Amount: $" + transfer.getAmount());
+    }
 
     private HttpEntity<Transfer> makeTransferEntity(Transfer transfer) {
         HttpHeaders headers = new HttpHeaders();

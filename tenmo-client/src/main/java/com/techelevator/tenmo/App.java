@@ -98,15 +98,24 @@ public class App {
 
 	private void viewTransferHistory() {
 		// TODO Auto-generated method stub
-        long accountId =  accountService.getAccount(currentUser.getUser().getId(), currentUser).getAccountId();
-        System.out.println("111111");
-        List<Transfer> list = transferService.list(accountId, currentUser);
-        System.out.println(list.get(0).getTransferId());
-        System.out.println("111111");
-		for (Transfer transfer : list) {
-            System.out.println(transfer.getTransferId());
+        long accountId =  accountService.findAccountByUserId(currentUser.getUser().getId(), currentUser).getAccountId();
+        transferService.printTransfers(accountId, accountService, currentUser);
+        long transferId = consoleService.promptForMenuSelection("Please enter transfer ID to view details (0 to cancel): ");
+        if (transferId == 0) {
+            mainMenu();
+            return;
         }
-	}
+        Transfer transfer = transferService.getTransferById(transferId, accountId, currentUser);
+        if (transfer == null) {
+            System.out.println(System.lineSeparator() + "*** Transfer does not exist ***");
+            consoleService.pause();
+            viewTransferHistory();
+            return;
+        }
+        transferService.printTransfer(transfer, accountId, accountService, currentUser);
+        consoleService.pause();
+        viewTransferHistory();
+    }
 
 	private void viewPendingRequests() {
 		// TODO Auto-generated method stub
@@ -138,7 +147,7 @@ public class App {
             System.out.println(System.lineSeparator() + "*** Prohibited transfer, amount less or equal to 0 ***");
             consoleService.pause();
             sendBucks();
-
+            return;
         }
         else if (accountService.getBalance(currentUser).compareTo(amount)  <= 0) {
             System.out.println(System.lineSeparator() + "*** Insufficient funds ***");
@@ -146,8 +155,8 @@ public class App {
             sendBucks();
             return;
         }
-        long accountFrom = accountService.getAccount(currentUser.getUser().getId(), currentUser).getAccountId();
-        long accountTo = accountService.getAccount(userId, currentUser).getAccountId();
+        long accountFrom = accountService.findAccountByUserId(currentUser.getUser().getId(), currentUser).getAccountId();
+        long accountTo = accountService.findAccountByUserId(userId, currentUser).getAccountId();
         transferService.transferSend(currentUser, accountFrom, accountTo, amount);
         accountService.updateAccountBalance(userId, currentUser, amount, true);
         accountService.updateAccountBalance(currentUser.getUser().getId(), currentUser, amount, false);

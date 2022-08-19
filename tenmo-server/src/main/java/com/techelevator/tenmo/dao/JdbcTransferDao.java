@@ -45,7 +45,7 @@ public class JdbcTransferDao implements TransferDao{
         List<Transfer> list = new ArrayList<>();
         String sql = "select * from transfer where account_from = ? or account_to = ?;";
         try {
-            SqlRowSet sqlRowSet = jdbcTemplate.queryForRowSet(sql, Transfer[].class, accountId, accountId);
+            SqlRowSet sqlRowSet = jdbcTemplate.queryForRowSet(sql, accountId, accountId);
             while (sqlRowSet.next()) {
                 list.add(mapRowToTransfer(sqlRowSet));
             }

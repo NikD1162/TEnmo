@@ -8,6 +8,7 @@ public class Account {
     private long accountId;
     private long userId;
     private BigDecimal balance;
+    private String username;
 
     public Account() {
     }
@@ -16,6 +17,13 @@ public class Account {
         this.userId = userId;
         this.accountId = accountId;
         this.balance = balance;
+    }
+
+    public Account(long accountId, long userId, BigDecimal balance, String username) {
+        this.accountId = accountId;
+        this.userId = userId;
+        this.balance = balance;
+        this.username = username;
     }
 
     public long getUserId() {
@@ -40,6 +48,14 @@ public class Account {
 
     public void setBalance(BigDecimal balance) {
         this.balance = balance;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     @Override

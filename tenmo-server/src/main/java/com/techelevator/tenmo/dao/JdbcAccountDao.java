@@ -33,11 +33,33 @@ public class JdbcAccountDao implements AccountDao {
         return numberOfRowsUpdated != 0;
     }
 
+    @Override
+    public Account getByAccountId(long accountId) {
+        Account account = null;
+        String sql = "select * from account " +
+                "join tenmo_user on account.user_id = tenmo_user.user_id " +
+                "where account.account_id = ?;";
+        SqlRowSet sqlRowSet = jdbcTemplate.queryForRowSet(sql, accountId);
+        if (sqlRowSet.next()) {
+            account = mapRowToAccountUser(sqlRowSet);
+        }
+        return account;
+    }
+
     private Account mapRowToAccount(SqlRowSet sqlRowSet) {
         Account account = new Account();
         account.setAccountId(sqlRowSet.getLong("account_id"));
         account.setUserId(sqlRowSet.getLong("user_id"));
         account.setBalance(sqlRowSet.getBigDecimal("balance"));
+        return account;
+    }
+
+    private Account mapRowToAccountUser(SqlRowSet sqlRowSet) {
+        Account account = new Account();
+        account.setAccountId(sqlRowSet.getLong("account_id"));
+        account.setUserId(sqlRowSet.getLong("user_id"));
+        account.setBalance(sqlRowSet.getBigDecimal("balance"));
+        account.setUsername(sqlRowSet.getString("username"));
         return account;
     }
 

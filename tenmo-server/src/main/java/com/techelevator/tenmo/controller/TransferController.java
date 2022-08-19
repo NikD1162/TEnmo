@@ -29,7 +29,7 @@ public class TransferController {
     }
 
     @RequestMapping(path = "", method = RequestMethod.GET)
-    public List<Transfer> get(@Valid @RequestParam(defaultValue = "0") long account_id) {
+    public List<Transfer> get(@Valid @RequestParam(defaultValue = "0") int account_id) {
         return dao.list(account_id);
     }
 

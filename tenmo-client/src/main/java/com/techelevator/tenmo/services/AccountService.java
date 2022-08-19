@@ -28,7 +28,7 @@ public class AccountService {
         this.userToken = userToken;
     }
 
-    public Account getAccount(long userId, AuthenticatedUser currentUser) {
+    public Account findAccountByUserId(long userId, AuthenticatedUser currentUser) {
         setUserToken(currentUser.getToken());
         Account account = null;
         HttpEntity<Void> entity = makeVoidEntity();
@@ -43,7 +43,7 @@ public class AccountService {
     }
 
     public void updateAccountBalance(long userId, AuthenticatedUser currentUser, BigDecimal amount, boolean positive) {
-        Account account = getAccount(userId, currentUser);
+        Account account = findAccountByUserId(userId, currentUser);
         if (positive) account.setBalance(account.getBalance().add(amount));
         else account.setBalance(account.getBalance().subtract(amount));
         HttpEntity<Account> entity = makeAccountEntity(account);
@@ -56,10 +56,24 @@ public class AccountService {
     }
 
     public BigDecimal getBalance(AuthenticatedUser currentUser) {
-        Account account = getAccount(currentUser.getUser().getId(), currentUser);
+        Account account = findAccountByUserId(currentUser.getUser().getId(), currentUser);
         BigDecimal balance = account.getBalance();
         balance = balance.setScale(2, RoundingMode.DOWN);
         return balance;
+    }
+
+    public Account findAccountUsernameByAccountId(long accountId, AuthenticatedUser currentUser) {
+        setUserToken(currentUser.getToken());
+        Account account = null;
+        HttpEntity<Void> entity = makeVoidEntity();
+        try {
+        ResponseEntity<Account> responseEntity = restTemplate.exchange(API_BASE_URL + "?account_id=" + accountId, HttpMethod.GET, entity, Account.class);
+        account = responseEntity.getBody();
+        }
+        catch (RestClientResponseException | ResourceAccessException e) {
+        BasicLogger.log(e.getMessage());
+        }
+        return account;
     }
 
     private HttpEntity<Account> makeAccountEntity(Account account) {
