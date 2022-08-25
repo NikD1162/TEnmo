@@ -31,7 +31,7 @@ public class AccountController {
 
     @RequestMapping(path = "", method = RequestMethod.GET)
     public Account getByID(@RequestParam(defaultValue = "0") long account_id) throws UserNotFoundException {
-        return dao.getByAccountId(account_id);
+        return dao.getAccountUsernameByAccountId(account_id);
     }
 
 

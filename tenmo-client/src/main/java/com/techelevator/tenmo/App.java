@@ -83,7 +83,8 @@ public class App {
             } else if (menuSelection == 5) {
                 requestBucks();
             } else if (menuSelection == 0) {
-                continue;
+                loginMenu();
+                return;
             } else {
                 System.out.println("Invalid Selection");
             }
@@ -105,7 +106,7 @@ public class App {
             mainMenu();
             return;
         }
-        Transfer transfer = transferService.getTransferById(transferId, accountId, currentUser);
+        Transfer transfer = transferService.getTransferById(transferId, currentUser);
         if (transfer == null) {
             System.out.println(System.lineSeparator() + "*** Transfer does not exist ***");
             consoleService.pause();
@@ -119,8 +120,45 @@ public class App {
 
 	private void viewPendingRequests() {
 		// TODO Auto-generated method stub
-		
-	}
+        long accountId =  accountService.findAccountByUserId(currentUser.getUser().getId(), currentUser).getAccountId();
+        transferService.printPendingTransfers(accountId, accountService, currentUser);
+        long transferId = consoleService.promptForMenuSelection("Please enter transfer ID to approve/reject (0 to cancel): ");
+        if (transferId == 0) {
+            mainMenu();
+            return;
+        }
+        // Get transfer by id and filtered
+        Transfer transfer = transferService.getTransferById(transferId, currentUser);
+        if (transfer == null) {
+            System.out.println(System.lineSeparator() + "*** Transfer does not exist ***");
+            consoleService.pause();
+            viewPendingRequests();
+            return;
+        }
+        consoleService.printPendingMenu();
+        long transferDecision = consoleService.promptForMenuSelection("Please choose an option: ");
+        if(transferDecision == 0) {
+            System.out.println("No action was taken");
+            consoleService.pause();
+            viewPendingRequests();
+            return;
+        }
+        if(transferDecision == 1) {
+            long userId = accountService.findAccountUsernameByAccountId(transfer.getAccountTo(), currentUser).getUserId();
+            BigDecimal amount = transfer.getAmount();
+            accountService.updateAccountBalance(userId, currentUser, amount, true);
+            accountService.updateAccountBalance(currentUser.getUser().getId(), currentUser, amount, false);
+            transferService.transferUpdateStatus(transfer, transferDecision);
+            System.out.println(System.lineSeparator() + "*** Transfer was approved ***");
+        }
+        else if(transferDecision == 2) {
+            transferService.transferUpdateStatus(transfer, transferDecision);
+            System.out.println(System.lineSeparator() + "*** Transfer was rejected ***");
+        }
+        consoleService.pause();
+        mainMenu();
+    }
+
 
 	private void sendBucks() {
 		// TODO Auto-generated method stub
@@ -167,7 +205,37 @@ public class App {
 
 	private void requestBucks() {
 		// TODO Auto-generated method stub
-		
+        userService.printUsers(currentUser);
+        long userId = consoleService.promptForMenuSelection("Enter ID of user you are requesting from (0 to cancel): ");
+        if (userId == 0) {
+            mainMenu();
+            return;
+        }
+        else if (currentUser.getUser().getId() == userId) {
+            System.out.println(System.lineSeparator() + "*** Prohibited transfer, request from your own account ***");
+            consoleService.pause();
+            requestBucks();
+            return;
+        }
+        else if (!userService.checkUserExists(userId, currentUser)) {
+            System.out.println(System.lineSeparator() + "*** User does not exist ***");
+            consoleService.pause();
+            requestBucks();
+            return;
+        }
+        BigDecimal amount = consoleService.promptForBigDecimal("Enter amount: ");
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            System.out.println(System.lineSeparator() + "*** Prohibited request, amount less or equal to 0 ***");
+            consoleService.pause();
+            requestBucks();
+            return;
+        }
+        long accountTo = accountService.findAccountByUserId(currentUser.getUser().getId(), currentUser).getAccountId();
+        long accountFrom = accountService.findAccountByUserId(userId, currentUser).getAccountId();
+        transferService.transferRequest(currentUser, accountFrom, accountTo, amount);
+        System.out.println(System.lineSeparator() + "*** Request successfully created ***");
+        consoleService.pause();
+        mainMenu();
 	}
 
 }

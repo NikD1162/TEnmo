@@ -9,5 +9,5 @@ public interface AccountDao {
 
     Account get(long userId) throws UserNotFoundException;
 
-    Account getByAccountId(long accountId);
+    Account getAccountUsernameByAccountId(long accountId);
 }

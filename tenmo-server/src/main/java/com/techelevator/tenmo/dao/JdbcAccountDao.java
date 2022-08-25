@@ -29,12 +29,11 @@ public class JdbcAccountDao implements AccountDao {
     @Override
     public boolean update(Account account) {
         String sql = "update account set balance = ? where account_id = ?;";
-        int numberOfRowsUpdated = jdbcTemplate.update(sql, account.getBalance(), account.getAccountId());
-        return numberOfRowsUpdated != 0;
+        return jdbcTemplate.update(sql, account.getBalance(), account.getAccountId()) != 0;
     }
 
     @Override
-    public Account getByAccountId(long accountId) {
+    public Account getAccountUsernameByAccountId(long accountId) {
         Account account = null;
         String sql = "select * from account " +
                 "join tenmo_user on account.user_id = tenmo_user.user_id " +

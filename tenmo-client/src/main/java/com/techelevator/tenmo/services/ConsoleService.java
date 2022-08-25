@@ -88,4 +88,10 @@ public class ConsoleService {
         System.out.println("An error occurred. Check the log for details.");
     }
 
+    public void printPendingMenu(){
+        System.out.printf("%s%n%s%n%s%n", "1: Approve", "2: Reject", "0: Don't approve or reject");
+        String str = "_";
+        System.out.println(str.repeat(40));
+    }
+
 }

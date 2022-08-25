@@ -40,6 +40,16 @@ public class TransferService {
     public boolean transferSend(AuthenticatedUser currentUser, long accountFrom, long accountTo, BigDecimal amount) {
         setUserToken(currentUser.getToken());
         Transfer transfer = new Transfer(SEND_ID, APPROVED_ID, accountFrom, accountTo, amount);
+        return transfer(transfer);
+    }
+
+    public boolean transferRequest(AuthenticatedUser currentUser, long accountFrom, long accountTo, BigDecimal amount) {
+        setUserToken(currentUser.getToken());
+        Transfer transfer = new Transfer(REQUEST_ID, PENDING_ID, accountFrom, accountTo, amount);
+        return transfer(transfer);
+    }
+
+    private boolean transfer(Transfer transfer){
         HttpEntity<Transfer> entity = makeTransferEntity(transfer);
         try {
             ResponseEntity<Integer> responseEntity = restTemplate.exchange(API_BASE_URL, HttpMethod.POST, entity, Integer.class);
@@ -51,12 +61,43 @@ public class TransferService {
         return false;
     }
 
+    public void transferUpdateStatus(Transfer transfer, long transferDecision) {
+        if (transferDecision == 1) {
+            transfer.setTransferStatusId(APPROVED_ID);
+        }
+        else if (transferDecision == 2) {
+            transfer.setTransferStatusId(REQUEST_ID);
+        }
+        HttpEntity<Transfer> entity = makeTransferEntity(transfer);
+        try {
+            ResponseEntity<Void> responseEntity = restTemplate.exchange(API_BASE_URL, HttpMethod.PUT, entity, Void.class);
+        }
+        catch (RestClientResponseException | ResourceAccessException e) {
+            BasicLogger.log(e.getMessage());
+        }
+    }
+
     public List<Transfer> list(long accountId, AuthenticatedUser currentUser) {
         setUserToken(currentUser.getToken());
         List<Transfer> list = new ArrayList<>();
         HttpEntity<Void> entity = makeVoidEntity();
         try {
             ResponseEntity<Transfer[]> responseEntity = restTemplate.exchange(API_BASE_URL + "?account_id=" + accountId, HttpMethod.GET, entity, Transfer[].class);
+            list = Arrays.asList(Objects.requireNonNull(responseEntity.getBody()));
+        }
+        catch (RestClientResponseException | ResourceAccessException e) {
+            BasicLogger.log(e.getMessage());
+        }
+        return list;
+    }
+
+    public List<Transfer> listPending(long accountId, AuthenticatedUser currentUser) {
+        setUserToken(currentUser.getToken());
+        List<Transfer> list = new ArrayList<>();
+        HttpEntity<Void> entity = makeVoidEntity();
+        try {
+            ResponseEntity<Transfer[]> responseEntity = restTemplate.exchange(API_BASE_URL +
+                    "?account_id=" + accountId + "&transfer_status_id=" + PENDING_ID, HttpMethod.GET, entity, Transfer[].class);
             list = Arrays.asList(Objects.requireNonNull(responseEntity.getBody()));
         }
         catch (RestClientResponseException | ResourceAccessException e) {
@@ -86,15 +127,38 @@ public class TransferService {
                         accountService.findAccountUsernameByAccountId(accountTo, currentUser).getUsername(), "$ " + amount);
             }
         }
-        System.out.println(str.repeat(40) + System.lineSeparator());
+        System.out.println(str.repeat(45) + System.lineSeparator());
     }
 
-    public Transfer getTransferById(long transferId, long accountId, AuthenticatedUser currentUser) {
-        List<Transfer> list = list(accountId, currentUser);
-        for (Transfer transfer : list) {
-            if (transfer.getTransferId() == transferId) return transfer;
+    public void printPendingTransfers(long accountId, AccountService accountService, AuthenticatedUser currentUser) {
+        List<Transfer> listPending = listPending(accountId, currentUser);
+        String str = "_";
+        System.out.println(System.lineSeparator() + str.repeat(45));
+        System.out.println("Pending Transfers");
+        System.out.printf("%-15s%-15s%-15s", "ID", "To", "Amount");
+        System.out.println(System.lineSeparator() + str.repeat(45));
+        for (Transfer transfer : listPending) {
+            long transferId = transfer.getTransferId();
+            long accountTo = transfer.getAccountTo();
+            BigDecimal amount = transfer.getAmount();
+            System.out.printf("%-15s%-15s%-15s%n", transferId, "To: " +
+                    accountService.findAccountUsernameByAccountId(accountTo, currentUser).getUsername(), "$ " + amount);
         }
-        return null;
+        System.out.println(str.repeat(45) + System.lineSeparator());
+    }
+
+    public Transfer getTransferById(long transferId, AuthenticatedUser currentUser) {
+        Transfer transfer = null;
+        setUserToken(currentUser.getToken());
+        HttpEntity<Void> entity = makeVoidEntity();
+        try {
+            ResponseEntity<Transfer> responseEntity = restTemplate.exchange(API_BASE_URL + transferId, HttpMethod.GET, entity, Transfer.class);
+            transfer = responseEntity.getBody();
+        }
+        catch (RestClientResponseException | ResourceAccessException e) {
+            BasicLogger.log(e.getMessage());
+        }
+        return transfer;
     }
 
     public void printTransfer(Transfer transfer, long accountId, AccountService accountService, AuthenticatedUser currentUser) {

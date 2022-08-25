@@ -5,9 +5,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
-import org.w3c.dom.stylesheets.LinkStyle;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,11 +16,6 @@ public class JdbcTransferDao implements TransferDao{
 
     public JdbcTransferDao(JdbcTemplate jdbcTemplate) { this.jdbcTemplate = jdbcTemplate; }
 
-
-    @Override
-    public BigDecimal sendMoney() {
-        return null;
-    }
 
     @Override
     public long create(Transfer transfer) {
@@ -51,9 +44,47 @@ public class JdbcTransferDao implements TransferDao{
             }
         }
         catch (DataAccessException e) {
-            e.printStackTrace();
+            System.out.println(e.getMessage());
         }
         return list;
+    }
+
+    @Override
+    public List<Transfer> listPending(long accountId, long transferStatusId) {
+        List<Transfer> list = new ArrayList<>();
+        String sql = "select * from transfer where account_from = ? and transfer_status_id = ?;";
+        try {
+            SqlRowSet sqlRowSet = jdbcTemplate.queryForRowSet(sql, accountId, transferStatusId);
+            while (sqlRowSet.next()) {
+                list.add(mapRowToTransfer(sqlRowSet));
+            }
+        }
+        catch (DataAccessException e) {
+            System.out.println(e.getMessage());
+        }
+        return list;
+    }
+
+    @Override
+    public Transfer get(long transferId) {
+        Transfer transfer = null;
+        String sql = "select * from transfer where transfer_id = ?;";
+        try {
+            SqlRowSet sqlRowSet = jdbcTemplate.queryForRowSet(sql, transferId);
+            if (sqlRowSet.next()) {
+                transfer = mapRowToTransfer(sqlRowSet);
+            }
+        }
+        catch (DataAccessException e) {
+            System.out.println(e.getMessage());
+        }
+        return transfer;
+    }
+
+    @Override
+    public boolean updateStatus(Transfer transfer) {
+        String sql = "update transfer set transfer_status_id = ? where transfer_id = ?;";
+        return jdbcTemplate.update(sql,transfer.getTransferStatusId(), transfer.getTransferId()) != 0;
     }
 
     private Transfer mapRowToTransfer(SqlRowSet sqlRowSet) {
