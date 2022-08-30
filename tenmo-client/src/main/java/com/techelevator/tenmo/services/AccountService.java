@@ -48,7 +48,7 @@ public class AccountService {
         else account.setBalance(account.getBalance().subtract(amount));
         HttpEntity<Account> entity = makeAccountEntity(account);
         try {
-            ResponseEntity<Void> responseEntity = restTemplate.exchange(API_BASE_URL, HttpMethod.PUT, entity, Void.class);
+            restTemplate.exchange(API_BASE_URL, HttpMethod.PUT, entity, Void.class);
         }
         catch (RestClientResponseException | ResourceAccessException e) {
             BasicLogger.log(e.getMessage());

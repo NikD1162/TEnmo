@@ -35,6 +35,7 @@ public class App {
     }
     private void loginMenu() {
         int menuSelection = -1;
+//        currentUser = null;
         while (menuSelection != 0 && currentUser == null) {
             consoleService.printLoginMenu();
             menuSelection = consoleService.promptForMenuSelection("Please choose an option: ");

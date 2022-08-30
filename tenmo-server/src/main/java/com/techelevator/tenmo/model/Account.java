@@ -6,7 +6,6 @@ import javax.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 import java.util.Objects;
 
-@Component
 public class Account {
 
     @NotBlank
