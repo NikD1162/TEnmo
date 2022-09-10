@@ -35,7 +35,6 @@ public class App {
     }
     private void loginMenu() {
         int menuSelection = -1;
-//        currentUser = null;
         while (menuSelection != 0 && currentUser == null) {
             consoleService.printLoginMenu();
             menuSelection = consoleService.promptForMenuSelection("Please choose an option: ");
@@ -84,7 +83,8 @@ public class App {
             } else if (menuSelection == 5) {
                 requestBucks();
             } else if (menuSelection == 0) {
-                loginMenu();
+                App app = new App();
+                app.run();
                 return;
             } else {
                 System.out.println("Invalid Selection");
@@ -147,6 +147,12 @@ public class App {
         if(transferDecision == 1) {
             long userId = accountService.findAccountUsernameByAccountId(transfer.getAccountTo(), currentUser).getUserId();
             BigDecimal amount = transfer.getAmount();
+            if (accountService.getBalance(currentUser).compareTo(amount)  < 0) {
+                System.out.println(System.lineSeparator() + "*** Insufficient funds ***");
+                consoleService.pause();
+                viewPendingRequests();
+                return;
+            }
             accountService.updateAccountBalance(userId, currentUser, amount, true);
             accountService.updateAccountBalance(currentUser.getUser().getId(), currentUser, amount, false);
             transferService.transferUpdateStatus(transfer, transferDecision);
@@ -157,7 +163,7 @@ public class App {
             System.out.println(System.lineSeparator() + "*** Transfer was rejected ***");
         }
         consoleService.pause();
-        mainMenu();
+        viewPendingRequests();
     }
 
 
@@ -188,7 +194,7 @@ public class App {
             sendBucks();
             return;
         }
-        else if (accountService.getBalance(currentUser).compareTo(amount)  <= 0) {
+        else if (accountService.getBalance(currentUser).compareTo(amount)  < 0) {
             System.out.println(System.lineSeparator() + "*** Insufficient funds ***");
             consoleService.pause();
             sendBucks();
